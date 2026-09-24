@@ -1,0 +1,75 @@
+version: "1"
+
+ai-ml:
+  sources:
+    - github
+    - hn
+    - openalex
+  seed_queries:
+    - "deep learning framework"
+    - "machine learning runtime"
+    - "transformer inference"
+  synonyms:
+    - "ai"
+    - "ml"
+    - "machine learning"
+    - "deep learning"
+    - "pytorch"
+
+databases:
+  sources:
+    - github
+    - hn
+    - openalex
+  seed_queries:
+    - "relational database"
+    - "vector database"
+    - "distributed sql engine"
+  synonyms:
+    - "db"
+    - "database"
+    - "rdbms"
+    - "sql"
+    - "postgres"
+
+web-frameworks:
+  sources:
+    - github
+    - hn
+  seed_queries:
+    - "python web framework"
+    - "fullstack web framework"
+  synonyms:
+    - "django"
+    - "fastapi"
+    - "flask"
+    - "web framework"
+
+devsecops:
+  sources:
+    - github
+    - hn
+  seed_queries:
+    - "infrastructure as code"
+    - "ci cd pipeline"
+    - "container security"
+  synonyms:
+    - "devops"
+    - "secops"
+    - "kubernetes"
+    - "terraform"
+
+compilers:
+  sources:
+    - github
+    - hn
+    - openalex
+  seed_queries:
+    - "compiler toolchain"
+    - "just in time compilation"
+    - "intermediate representation"
+  synonyms:
+    - "llvm"
+    - "gcc"
+    - "compiler"
+    - "jit"
