@@ -116,6 +116,17 @@ class GoldenSample(BaseModel):
     annotated_at: datetime | None = None
 
 
+class ProxyGoldenConfig(BaseModel):
+    """Proxy golden for the recall self-check (P0-3d).
+
+    The runners' 'recall' metric is a REGEX PROXY on tool-name matches,
+    not an independent golden set. The pattern lives here (the runners
+    used to inline it) so it stays configurable per domain, and
+    the metric must be reported as proxy recall, never plain recall."""
+
+    golden_tool_pattern: str = r"\b(yt-?dlp|streamlink|youtube-?dl)\b"
+
+
 # ----------------------------------------------------------- snapshot config
 
 class SnapshotConfig(BaseModel):

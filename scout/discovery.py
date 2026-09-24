@@ -6,7 +6,7 @@ import time
 import urllib.parse
 from typing import Any, Callable
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DiscoveryCounters(BaseModel):
@@ -19,6 +19,8 @@ class DiscoveryCounters(BaseModel):
     filtered_count: int = 0
     hits_304: int = 0
     hits_403_429: int = 0
+    # P0-3a: raw hits captured before dedup and truncate (artifact raw_hits.json)
+    raw_hits: list[dict] = Field(default_factory=list)
 
     def __getitem__(self, item: str) -> Any:
         return getattr(self, item)

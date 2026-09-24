@@ -59,6 +59,7 @@ from scout.config import (  # noqa: E402
     EntityArtifact,
     EntityResolutionConfig,
     FindingArtifact,
+    ProxyGoldenConfig,
     SnapshotConfig,
     StageCounters,
     TextMiningConfig,
@@ -72,6 +73,7 @@ from scout.report import cost_per_stage, render_report  # noqa: E402
 from scout.runtime import (  # noqa: E402
     HttpTransport,
     build_signals,
+    dedupe_notes,
     embedder_stub,
     entities_from_clusters,
     gh_slug,
@@ -103,6 +105,7 @@ BAND_CFG = BandConfig(
 SCOPE_BY_BAND = {"leader": "plausible", "contender": "plausible",
                  "candidate": "plausible", "unverified": "below-plausible"}
 DEFAULT_AXES = "core capability;installation and setup;limitations and maturity"
+PROXY_GOLDEN = ProxyGoldenConfig()
 
 
 class AgentPause(Exception):
@@ -248,6 +251,7 @@ def main() -> int:
     # ---------------- [1] discovery (checkpointed — never re-crawled) -------
     if "records" not in state:
         records: list[dict] = []
+        raw_hits: list[dict] = []
         bucket = TokenBucket(rate_per_minute=10, clock=time.monotonic)
         counters = {"rest_calls": 0, "search_calls": 0, "issues_truncated_count": 0,
                     "comments_truncated_count": 0, "filtered_count": 0,
@@ -267,6 +271,8 @@ def main() -> int:
                                           dcfg, transport)
             for f in counters:
                 counters[f] += int(getattr(c, f) or 0)
+            raw_hits.extend({"source": source, "query": q, "item": it}
+                            for it in c.raw_hits)
             records.extend(recs)
         for r in records:
             if "abstract_inverted_index" in r:
@@ -280,8 +286,10 @@ def main() -> int:
         for f, v in counters.items():
             setattr(stages["[1]"], f, v)
         state["records"] = records
+        state["raw_hits"] = raw_hits
         state["http_after_discovery"] = transport.count
     records = state["records"]
+    raw_hits = state.get("raw_hits", [])
     print(f"[1] records={len(records)} http_calls={transport.count}", flush=True)
 
     # ---------------- REST enrichment (code signals for [3]) ----------------
@@ -397,7 +405,7 @@ def main() -> int:
           flush=True)
 
     # ---------------- [5] text-mining (agent extracts) + facet --------------
-    golden_re = re.compile(r"\b(yt-?dlp|streamlink|youtube-?dl)\b", re.I)
+    golden_re = re.compile(PROXY_GOLDEN.golden_tool_pattern, re.I)
     golden_ids: set[str] = set()
     caught_b: set[str] = set()
     findings_all: list[dict] = []
@@ -442,7 +450,7 @@ def main() -> int:
                              "non-verbatim quote")
         stages["[5]"].llm_calls += 1
     if golden_ids:
-        eval_info["evidence_recall_branch_B"] = evidence_recall(
+        eval_info["proxy_recall_branch_B"] = evidence_recall(
             [{"snippet_id": g, "is_third_party_evidence": True} for g in sorted(golden_ids)],
             caught_b)
     for e in plausible[: args.facet_entities]:
@@ -567,6 +575,10 @@ def main() -> int:
     (workdir / "report.md").write_text(report_md, encoding="utf-8")
     (workdir / "coverage_log.json").write_text(coverage.model_dump_json(indent=2),
                                                encoding="utf-8")
+    notes = dedupe_notes(notes)
+    eval_info["notes"] = notes
+    (workdir / "raw_hits.json").write_text(
+        json.dumps(raw_hits, indent=2, ensure_ascii=False), encoding="utf-8")
     (workdir / "evidence.json").write_text(json.dumps(rows_by_entity, indent=2,
                                                       default=str), encoding="utf-8")
     (workdir / "snapshot_plan.json").write_text(json.dumps(
@@ -585,7 +597,7 @@ def main() -> int:
 
 
 def _save_and_exit2(state_path: Path, state: dict, notes: list, workdir: Path) -> None:
-    state["notes"] = notes
+    state["notes"] = dedupe_notes(notes)
     state_path.write_text(json.dumps(state, default=str), encoding="utf-8")
     sys.exit(2)
 

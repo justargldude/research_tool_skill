@@ -290,3 +290,13 @@ def write_artifacts(out_dir: Path | str,
     (out_dir / "findings.json").write_text(
         json.dumps([f.model_dump() for f in findings], indent=2, ensure_ascii=False),
         encoding="utf-8")
+
+
+def dedupe_notes(notes: list[str]):
+    """Dedupe for run notes, preserving order (P0-3c).
+
+    Stage [5] has no checkpoint: on resume the run appends again notes
+    already persisted in state, so duplicates must be removed at persist
+    time. First occurrence wins; deterministic. Returns a new list;
+    the input is untouched."""
+    return list(dict.fromkeys(notes))

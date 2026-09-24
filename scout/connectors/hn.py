@@ -58,6 +58,11 @@ def search(
     else:
         items = []
 
+    # P0-3a: capture raw hits before dedup and truncate (diagnostic artifact)
+    for raw_item in items:
+        if isinstance(raw_item, dict):
+            counters.raw_hits.append(dict(raw_item))
+
     seen: set[tuple[str, str, str]] = set()
     unique_items: list[dict] = []
     for raw_item in items:

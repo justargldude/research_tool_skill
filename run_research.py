@@ -43,6 +43,7 @@ from scout.config import (
     EntityResolutionConfig,
     FindingArtifact,
     ProfilerConfig,
+    ProxyGoldenConfig,
     SnapshotConfig,
     StageCounters,
     TextMiningConfig,
@@ -56,6 +57,7 @@ from scout.report import cost_per_stage, render_report, seeded_recall
 from scout.runtime import (
     HttpTransport,
     build_signals,
+    dedupe_notes,
     embedder_stub,
     entities_from_clusters,
     gh_slug,
@@ -95,7 +97,8 @@ BAND_CFG = BandConfig(
 )
 SCOPE_BY_BAND = {"leader": "plausible", "contender": "plausible",
                  "candidate": "plausible", "unverified": "below-plausible"}
-GOLDEN_TOOL_RE = re.compile(r"\b(yt-?dlp|streamlink|youtube-?dl)\b", re.I)
+PROXY_GOLDEN = ProxyGoldenConfig()
+GOLDEN_TOOL_RE = re.compile(PROXY_GOLDEN.golden_tool_pattern, re.I)
 
 
 # --------------------------------------------------------------------------
@@ -222,6 +225,7 @@ def main() -> None:
 
     # ---------------- [1] discovery (real APIs) ----------------------------
     records: list[dict] = []
+    raw_hits: list[dict] = []
     combos = fan_out(profile["seed_queries"][:3], profile["sources"])
     for q, source in combos:
         if not bucket.take():
@@ -240,6 +244,8 @@ def main() -> None:
                   "comments_truncated_count", "filtered_count",
                   "hits_304", "hits_403_429"):
             setattr(stages["[1]"], f, getattr(stages["[1]"], f) + int(getattr(c, f) or 0))
+        raw_hits.extend({"source": source, "query": q, "item": it}
+                        for it in c.raw_hits)
         records.extend(recs)
     if "github" in profile["sources"]:
         etags["github"] = '"live-run-1"'
@@ -363,7 +369,7 @@ def main() -> None:
         stages["[5]"].tokens_out = ledger["tokens_out"] - stages["[0]"].tokens_out
     golden = [{"snippet_id": g, "is_third_party_evidence": True} for g in sorted(golden_ids)]
     if golden:
-        eval_info["evidence_recall_branch_B"] = evidence_recall(golden, caught_b)
+        eval_info["proxy_recall_branch_B"] = evidence_recall(golden, caught_b)
     for e in plausible[:args.facet_entities]:  # facet cap: N entities x 6 search calls
         f_findings, f_c = facet_search({"name": e["name"], "scope": "plausible"},
                                        TextMiningConfig(), transport)
@@ -471,6 +477,9 @@ def main() -> None:
 
     (out_dir / "report.md").write_text(report_md, encoding="utf-8")
     (out_dir / "coverage_log.json").write_text(coverage.model_dump_json(indent=2), encoding="utf-8")
+    eval_info["notes"] = dedupe_notes(eval_info["notes"])
+    (out_dir / "raw_hits.json").write_text(
+        json.dumps(raw_hits, indent=2, ensure_ascii=False), encoding="utf-8")
     (out_dir / "eval.json").write_text(json.dumps(eval_info, indent=2, default=str),
                                        encoding="utf-8")
     (out_dir / "evidence.json").write_text(json.dumps(rows_by_entity, indent=2, default=str),
