@@ -1,23 +1,19 @@
-# research-tool-skill-for-antigravity
+# research_tool_skill
 
-One prompt installs an agent skill that researches software tools for any
-topic: discovery → clustering → evidence scoring → capability audit → a
-deterministic markdown report. Free public sources (GitHub, Hacker News,
-OpenAlex) — **no API keys**. Works in Antigravity, Claude Code, and any
-agent that supports SKILL.md.
+An agent skill that researches software tools for any topic: discovery →
+clustering → evidence scoring → capability audit → a deterministic markdown
+report. Free public sources (GitHub, Hacker News, OpenAlex) — **no API
+keys**. Works in Antigravity, Claude Code, and any agent that supports
+SKILL.md.
 
-## Install (one prompt)
+## Install
 
-Open [`INSTALL-PROMPT.md`](INSTALL-PROMPT.md), paste it into your agent, and
-follow it — it installs this skill **plus** two companion skills
-([watermarks-remover](https://github.com/guillaumemeyer/watermarks-remover),
-[humanizer](https://github.com/blader/humanizer)), finishes setup for your OS
-(Windows/macOS/Linux — no installer scripts, the agent adapts), and prints
-the usage guide.
+Paste this into your agent (Antigravity, Claude Code, or any SKILL.md agent):
 
-Manual route: `npx skills add justargldude/research_tool_skill --skill research-tool-skill`
-(pin your agent with `-a antigravity` / `-a claude-code`), then follow
-[`skills/research-tool-skill/SKILL.md`](skills/research-tool-skill/SKILL.md).
+> Install the research-tool-skill: run `npx skills add justargldude/research_tool_skill --skill research-tool-skill` (Antigravity: add `-a antigravity`, Claude Code: `-a claude-code`, otherwise let me select my agent). Then follow the **Install procedure in its SKILL.md**: check and install Python ≥ 3.10 and git if missing, clone this repo to my home dir, set up the only dependency (pydantic), run the offline smoke test, and print the usage guide in full.
+
+Manual route: follow [`skills/research-tool-skill/SKILL.md`](skills/research-tool-skill/SKILL.md)
+directly — the procedure is script-free and cross-platform (Windows/macOS/Linux).
 
 ## Using it
 
@@ -30,24 +26,18 @@ Manual route: `npx skills add justargldude/research_tool_skill --skill research-
 ## Layout
 
 ```
-skills/research-tool-skill/   # the published skill (SKILL.md + USAGE.md + LLM contracts)
-.agent/skills/…               # same skill, workspace layout for this repository
+skills/research-tool-skill/   # the skill: SKILL.md + USAGE.md + LLM contracts + runner
 scout/                        # pipeline package (deterministic machinery)
 run_pipeline.py               # offline demo (no network) — also the post-install smoke test
 run_research.py               # standalone runner (gateway LLM mode)
-schemas/ · examples/ · tests/ # contracts generated from pydantic + QA suite (181 tests)
-docs/internal/                # process notes, spec, audit history (archived)
-tools/                        # one-off maintenance utilities
 ```
 
 ## Development
 
 ```bash
 pip install -r requirements.txt
-python -m pytest tests/ -q        # 181 tests
 python run_pipeline.py --out out/demo   # offline demo, deterministic
 ```
 
 Scoring thresholds and bands are spec starting points, not calibrated values;
-treat bands as ordinal hints. Product decisions and architecture review live
-in `docs/internal/first-test/` (Vietnamese).
+treat bands as ordinal hints.

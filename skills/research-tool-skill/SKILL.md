@@ -58,9 +58,6 @@ Install dir: Windows `%USERPROFILE%\.research-tool-skill` · macOS/Linux `~/.res
 
 **Step 5 — print `USAGE.md` (this folder) to the user IN FULL.** Mandatory.
 
-If the user asks to install/update the whole bundle (scout + watermarks-remover
-+ humanizer), follow `INSTALL-PROMPT.md` at the repo root.
-
 ## Update — trigger phrase: "update research-tool-skill"
 
 When the user says "update research-tool-skill" (or asks to update the pipeline), run these
